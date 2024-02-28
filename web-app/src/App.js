@@ -24,7 +24,10 @@ function App() {
     const nodes = [];
     const links = [];
     ingredientPairs.forEach(x => {
-      if(x.count < 15) return;
+      // Para pasar este filtro la combinación  
+      // de ingredientes tuvo que haberse repetido 
+      // a lo largo de 15 recetas distintas
+      if(x.count < 3) return;
 
       const ing1slug = x.ing1.replaceAll(' ', '-');
       const ing2slug = x.ing2.replaceAll(' ', '-');
@@ -200,8 +203,6 @@ function App() {
     const nodeInfo = graphNodes.find(x => x.name === ingredient);
     if(nodeInfo) handleNodeClick(nodeInfo);
   }
-
-  console.log('root', graphLinks.length);
 
   return (
     <div>
