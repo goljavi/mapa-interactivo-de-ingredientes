@@ -1,7 +1,7 @@
 import React from 'react';
 import * as d3 from 'd3';
 import { recommendIngredient, findRecipesWithIngredients } from './functions';
-import ingredientPairs from './ingredient-pairs.json';
+import ingredientPairs from './ingredient-pairs-tfidf.json';
 
 const width = 928; 
 const height = 600;
@@ -24,11 +24,6 @@ function App() {
     const nodes = [];
     const links = [];
     ingredientPairs.forEach(x => {
-      // Para pasar este filtro la combinación  
-      // de ingredientes tuvo que haberse repetido 
-      // a lo largo de 15 recetas distintas
-      if(x.count < 3) return;
-
       const ing1slug = x.ing1.replaceAll(' ', '-');
       const ing2slug = x.ing2.replaceAll(' ', '-');
 
@@ -45,6 +40,8 @@ function App() {
     });
     setGraphNodes(nodes);
     setGraphLinks(links);
+
+    console.log([...nodes].slice(240, 300).map(x => x.name).join(' | \n'))
 
     // Create the SVG container.
     const svg = d3.select(svgRef.current);
@@ -88,14 +85,19 @@ function App() {
       .on("click", (event, d) => handleNodeClick(d)); 
 
     // Create a simulation with several forces.
-    const simulation = d3.forceSimulation(nodes)
-      .force("link", d3.forceLink(links).id(d => d.id).distance(100)) // Adjust link distance
-      .force("charge", d3.forceManyBody().strength(-500)) // Increase repulsion
+    /*const simulation = d3.forceSimulation(nodes)
+    .force("link", d3.forceLink(links)
+    .id(d => d.id)
+    .distance(d => 20 - d.value * 0.5) // Example calculation, adjust as needed
+    // The base distance is 100, and we subtract a value based on count.
+    // Ensure the result is positive and makes sense for your dataset.
+)
+      .force("charge", d3.forceManyBody().strength(-600)) // Increase repulsion
       .force("center", d3.forceCenter(width / 2, height / 2))
-      .on("tick", ticked);
+      .on("tick", ticked);*/
 
     // Set the position attributes of links and nodes each time the simulation ticks.
-    function ticked() {
+    /*function ticked() {
       link
           .attr("x1", d => d.source.x)
           .attr("y1", d => d.source.y)
@@ -108,7 +110,7 @@ function App() {
       if (simulation.alpha() < 0.1) { // Check if the simulation has cooled down
         simulation.stop(); // Stops the simulation
       }
-    }
+    }*/
 
     const zoom = d3.zoom()
       .scaleExtent([0, 10]) // This defines the range of zoom. Feel free to adjust.
@@ -158,44 +160,62 @@ function App() {
 
   React.useEffect(() => {
     function updateVisualState(selectedNodes) {
-      // Set all nodes to reduced opacity
+      // Reset styles for all nodes and links to default
       d3.selectAll('.nodes g circle')
         .style('opacity', 0.5)
-        .style('fill', d => color(d.group)); // Reset color to original
-    
-      // Highlight selected nodes
-      selectedNodes.forEach(node => {
-        d3.select(`.nodes g[id="${node.id}"] circle`)
-          .style('opacity', 1)
-          .style('fill', 'orange');
-      });
-    
-      // Reset all link opacities
+        .style('fill', d => color(d.group)); // Reset to the original color
+  
       d3.selectAll('.content-group line')
         .style('stroke-opacity', 0.3);
   
-        console.log('updateVisualState', graphLinks.length);
-    
-      // Highlight links for selected nodes
-      selectedNodes.forEach(node => {
-        graphLinks.forEach(link => {
-          if (link.source.id === node.id || link.target.id === node.id) {
-            console.log('yes')
-            d3.selectAll(`line[source="${node.id}"]`)
-              .style('stroke-opacity', 1);
-            d3.selectAll(`line[target="${node.id}"]`)
-              .style('stroke-opacity', 1);
+      if (selectedNodes.length === 0) return; // Exit if no nodes are selected
   
-            d3.select(`.nodes g[id="${link.source.id}"] circle`)
-              .style('opacity', 1);
-            d3.select(`.nodes g[id="${link.target.id}"] circle`)
-              .style('opacity', 1);
-          }
+      // Identify links that connect to each selected node
+      const linksForEachSelectedNode = selectedNodes.map(selectedNode =>
+        graphLinks.filter(link =>
+          link.source.id === selectedNode.id
+        )
+      ).flat();
+
+
+      const commonLinks = []
+      linksForEachSelectedNode.forEach(x => {
+
+        let repeated = 1;
+        linksForEachSelectedNode.forEach(y => {
+          if(x.source.id === y.source.id) return;
+          if(x.target.id === y.target.id) repeated = repeated + 1;
         });
+
+        if(repeated >= selectedNodes.length) {
+          commonLinks.push(x);
+        }
+      })
+  
+      // Highlight common links
+      commonLinks.forEach(link => {
+        d3.selectAll(`line[source="${link.source.id}"], line[target="${link.source.id}"]`)
+          .style('stroke-opacity', 1);
+        d3.selectAll(`line[source="${link.target.id}"], line[target="${link.target.id}"]`)
+          .style('stroke-opacity', 1);
+      });
+  
+      // Identify and highlight nodes at the ends of these common links in blue
+      const connectedNodeIds = new Set(commonLinks.flatMap(link => [link.source.id, link.target.id]));
+      connectedNodeIds.forEach(nodeId => {
+        d3.select(`.nodes g[id="${nodeId}"] circle`)
+          .style('opacity', 1); // Connected nodes in blue
+      });
+  
+      // Overlay the clicked (selected) nodes in orange
+      selectedNodes.forEach(node => {
+        d3.select(`.nodes g[id="${node.id}"] circle`)
+          .style('opacity', 1)
+          .style('fill', 'orange'); // Clicked nodes in orange
       });
     }   
-
-    if(graphLinks.length) updateVisualState(clickedNodes, graphLinks);
+  
+    if(graphLinks.length) updateVisualState(clickedNodes);
   }, [clickedNodes, graphLinks]); // Depend on clickedNodes and graphLinks
 
   
