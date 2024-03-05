@@ -171,16 +171,20 @@ def format_saborargento(soups):
 
   return formatted_recipes
 
-directories = [
-    ("/raw/cookpad-html", format_cookpad),
-    ("/raw/recetasgratis-html", format_recetasgratis),
-    ("/raw/saborargento-html", format_saborargento)
-]
+def start():
+  directories = [
+      ("/raw/cookpad-html", format_cookpad),
+      ("/raw/recetasgratis-html", format_recetasgratis),
+      ("/raw/saborargento-html", format_saborargento)
+  ]
 
-all_formatted_recipes = []
-for dir, func in directories:
-    soups = load_html_files(dir)
-    all_formatted_recipes.extend(func(soups))
+  all_formatted_recipes = []
+  for dir, func in directories:
+      soups = load_html_files(dir)
+      all_formatted_recipes.extend(func(soups))
 
-with open('/formatted/formatted-recipes.json', 'w') as f:
-    json.dump(all_formatted_recipes, f, indent=4)
+  with open('/formatted/formatted-recipes.json', 'w') as f:
+      json.dump(all_formatted_recipes, f, indent=4)
+
+if __name__ == "__main__":
+  start()

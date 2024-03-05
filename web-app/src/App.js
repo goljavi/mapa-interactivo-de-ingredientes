@@ -1,6 +1,6 @@
 import React from 'react';
 import * as d3 from 'd3';
-import { recommendIngredient, findRecipesWithIngredients, ingredientToUSDAInfo } from './functions';
+import { recommendIngredient, findRecipesWithIngredients, ingredientToUSDAInfo, getClasif } from './functions';
 import ingredientPairs from './ingredient-pairs-tfidf.json';
 import recipes from './formatted-recipes.json';
 import Drawer from '@mui/material/Drawer';
@@ -87,7 +87,7 @@ function App() {
     node.append("circle")
       .attr("r", 30) // Radius of the circle
       .style('opacity', 0.5)
-      .attr("fill", d => color(d.group))
+      .attr("fill", d => getClasif(d.name))
       .attr("stroke", "#fff")
       .attr("stroke-width", 1)
       .on("click", (event, d) => handleNodeClick(d));
@@ -185,7 +185,7 @@ function App() {
       // Reset styles for all nodes and links to default
       d3.selectAll('.nodes g circle')
         .style('opacity', 0.5)
-        .style('fill', d => color(d.group)); // Reset to the original color
+        .style('fill', d => getClasif(d.name)); // Reset to the original color
   
       d3.selectAll('.content-group line')
         .style('stroke-opacity', 0.3);

@@ -166,11 +166,15 @@ def scraper(url):
       print('No recipe', url)
       return False
 
-for url in all_urls:
-  if url not in already_scrapped:
-    result = scraper(url)
+def start():
+  for url in all_urls:
+    if url not in already_scrapped:
+      result = scraper(url)
 
-    if(result):
-      already_scrapped.append(url)
-    else:
-      break
+      if(result):
+        already_scrapped.append(url)
+      else:
+        break
+
+if __name__ == "__main__":
+  start()

@@ -2,6 +2,7 @@ import pairings from './ingredient-recomendation-matrix.json';
 import formattedRecipes from './formatted-recipes.json';
 import USDA from './usda-foundation-ingredients.json';
 import ingredientToUsda from './ingredient-to-usda-foundation.json';
+import clasificacionDulceSalado from './clasificacion-ingredientes-dulce-salado.json';
 
 export function recommendIngredient(userIngredients) {
     const recommendations = {};
@@ -48,4 +49,23 @@ export function ingredientToUSDAInfo(ingredient) {
     }
 
     return food;
+}
+
+export function getClasif(ingredient) {
+    const clasif = clasificacionDulceSalado.find(x => x[0] === ingredient);
+    if(!clasif) return null;
+
+    switch (clasif[1]) {
+        case "Salado":
+            return "#1f77b4";
+        
+        case "Dulce":
+            return "#d32f2f";
+
+        case "Indistinto":
+            return "#008107";
+    
+        default:
+            return "#1f77b4";
+    }
 }
