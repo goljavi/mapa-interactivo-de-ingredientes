@@ -138,7 +138,7 @@ function App() {
       contentGroup.attr("transform", event.transform);
     }
 
-    svg.call(zoom);
+    svg.call(zoom).call(zoom.transform, d3.zoomIdentity.translate(400, 250).scale(0.3));
 
     return svg.node();
   }
