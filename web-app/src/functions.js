@@ -1,5 +1,7 @@
 import pairings from './ingredient-recomendation-matrix.json';
 import formattedRecipes from './formatted-recipes.json';
+import USDA from './usda-foundation-ingredients.json';
+import ingredientToUsda from './ingredient-to-usda-foundation.json';
 
 export function recommendIngredient(userIngredients) {
     const recommendations = {};
@@ -32,4 +34,18 @@ export function findRecipesWithIngredients(searchIngredients, qty = 3) {
 
     // Select up to three recipes from the shuffled list
     return shuffledRecipes.slice(0, qty);
+}
+
+export function ingredientToUSDAInfo(ingredient) {
+    const usdaDescriptionArr = ingredientToUsda.find(x => x[0] === ingredient);
+    if(!usdaDescriptionArr) return;
+
+    const usdaDescription = usdaDescriptionArr[usdaDescriptionArr.length - 1];
+
+    let food = USDA.FoundationFoods.find(x => x.description.includes(usdaDescription));
+    if(!food) {
+        food = USDA.FoundationFoods.find(x => x.description.includes(usdaDescription.split(',')[0]));
+    }
+
+    return food;
 }

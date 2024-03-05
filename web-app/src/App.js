@@ -1,7 +1,24 @@
 import React from 'react';
 import * as d3 from 'd3';
-import { recommendIngredient, findRecipesWithIngredients } from './functions';
+import { recommendIngredient, findRecipesWithIngredients, ingredientToUSDAInfo } from './functions';
 import ingredientPairs from './ingredient-pairs-tfidf.json';
+import recipes from './formatted-recipes.json';
+import Drawer from '@mui/material/Drawer';
+import Typography from '@mui/material/Typography';
+import Divider from '@mui/material/Divider';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
+import Paper from '@mui/material/Paper';
+import Button from '@mui/material/Button';
+import Card from '@mui/material/Card';
+import CardActions from '@mui/material/CardActions';
+import CardContent from '@mui/material/CardContent';
+import TextField from '@mui/material/TextField';
+import Autocomplete from '@mui/material/Autocomplete';
 
 const width = 928; 
 const height = 600;
@@ -17,6 +34,9 @@ function App() {
   const [clickedNodes, setClickedNodes] = React.useState([]);
   const [recommendedIngredients, setRecommendedIngredients] = React.useState([]);
   const [recommendedRecipes, setRecommendedRecipes] = React.useState([]);
+  const [usdaInfo, setUsdaInfo] = React.useState();
+  const [search, setSearch] = React.useState('');
+
 
   function makeChart() {
     chartAlreadyMade = true;
@@ -40,8 +60,6 @@ function App() {
     });
     setGraphNodes(nodes);
     setGraphLinks(links);
-
-    console.log([...nodes].slice(240, 300).map(x => x.name).join(' | \n'))
 
     // Create the SVG container.
     const svg = d3.select(svgRef.current);
@@ -85,7 +103,7 @@ function App() {
       .on("click", (event, d) => handleNodeClick(d)); 
 
     // Create a simulation with several forces.
-    /*const simulation = d3.forceSimulation(nodes)
+    const simulation = d3.forceSimulation(nodes)
     .force("link", d3.forceLink(links)
     .id(d => d.id)
     .distance(d => 20 - d.value * 0.5) // Example calculation, adjust as needed
@@ -94,10 +112,10 @@ function App() {
 )
       .force("charge", d3.forceManyBody().strength(-600)) // Increase repulsion
       .force("center", d3.forceCenter(width / 2, height / 2))
-      .on("tick", ticked);*/
+      .on("tick", ticked);
 
     // Set the position attributes of links and nodes each time the simulation ticks.
-    /*function ticked() {
+    function ticked() {
       link
           .attr("x1", d => d.source.x)
           .attr("y1", d => d.source.y)
@@ -110,7 +128,7 @@ function App() {
       if (simulation.alpha() < 0.1) { // Check if the simulation has cooled down
         simulation.stop(); // Stops the simulation
       }
-    }*/
+    }
 
     const zoom = d3.zoom()
       .scaleExtent([0, 10]) // This defines the range of zoom. Feel free to adjust.
@@ -143,6 +161,10 @@ function App() {
   }, [clickedNodes]);
 
   function handleNodeClick(nodeData) {
+    const usdaInfo = ingredientToUSDAInfo(nodeData.name);
+    setUsdaInfo(usdaInfo);
+    console.log(usdaInfo);
+
     setClickedNodes(prevNodes => {
       const nodeIndex = prevNodes.findIndex(n => n.id === nodeData.id);
       let newClickedNodes;
@@ -218,7 +240,15 @@ function App() {
     if(graphLinks.length) updateVisualState(clickedNodes);
   }, [clickedNodes, graphLinks]); // Depend on clickedNodes and graphLinks
 
-  
+  React.useEffect(() => {
+    console.log(search);
+    const recipeSearch = recipes.find(x => x.title === search);
+    if(!recipeSearch) return;
+
+    const newSelectedNodes = graphNodes.filter(x => !!recipeSearch.ingredients.find(y => y === x.name));
+    setClickedNodes(newSelectedNodes);
+  }, [search])
+
   function handleRecommendedIngredientButton(ingredient) {
     const nodeInfo = graphNodes.find(x => x.name === ingredient);
     if(nodeInfo) handleNodeClick(nodeInfo);
@@ -226,35 +256,112 @@ function App() {
 
   return (
     <div>
-      <svg ref={svgRef} width="100%" height={height} viewBox={`0 0 ${width} ${height}`} style={{maxWidth: '100%', height: 'auto'}} />
-      <div style={{position:'fixed',left:0,top:0,height:'100vh',width:300,padding:15}}>
-        <div style={{width:'100%',height:'90vh',padding:15,background:'#fff', borderRadius: 15}}>
+      <Drawer
+        sx={{
+          width: 350,
+          flexShrink: 0,
+          '& .MuiDrawer-paper': {
+            width: 350,
+            boxSizing: 'border-box',
+          },
+        }}
+        variant="permanent"
+        anchor="left"
+      >
+        <div style={{padding:15}}>
           <div>
-            <h3>Seleccionaste:</h3>
-            <ul>
-              {clickedNodes.map(node => (
-                <li key={node.id}>{node.name}</li>
-              ))}
-            </ul>
+            <Typography variant="h6">Seleccionaste:</Typography>
+            <TableContainer component={Paper}>
+              <Table size="small" aria-label="a dense table">
+                <TableBody>
+                  {clickedNodes.map((node, i) => (
+                    <TableRow key={i}>
+                      <TableCell component="th" scope="row">
+                        {node.name}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
           </div>
+          <Divider style={{marginBottom: 15}}/>
           <div>
-            <h3>Podés agregar:</h3>
-            <ul>
+            <Typography variant="h6">Podés agregar:</Typography>
+            <div>
               {recommendedIngredients.map((ingredient, i) => (
-                <li key={i}><button onClick={() => handleRecommendedIngredientButton(ingredient)}>{ingredient}</button></li>
+                <Button style={{margin:'10px 0',display:'block'}} variant="contained" onClick={() => handleRecommendedIngredientButton(ingredient)}>
+                  {ingredient}
+                </Button>
               ))}
-            </ul>
+            </div>
           </div>
+          <Divider style={{marginBottom: 15}}/>
           <div>
-            <h3>Recetas:</h3>
-            <ul>
-              {recommendedRecipes.map((recipe, i) => (
-                <li key={i}><a href={recipe.url} target="_blank" rel="noreferrer">{recipe.title}</a></li>
-              ))}
-            </ul>
+            <Typography variant="h6">Recetas:</Typography>
+            {recommendedRecipes.map((recipe, i) => (
+              <Card style={{margin:'15px 0'}} key={i}>
+                <CardContent>
+                  <Typography variant="h6" component="div">
+                    {recipe.title}
+                  </Typography>
+                </CardContent>
+                <CardActions>
+                  <Button size="small" href={recipe.url} target="_blank" rel="noreferrer">{new URL(recipe.url).hostname}</Button>
+                </CardActions>
+              </Card>
+            ))}
           </div>
+          <Divider style={{marginBottom: 15}}/>
+          {usdaInfo && <div>
+            <Typography variant="h6">Info Nutricional: </Typography>
+            <Typography variant="body1">{usdaInfo?.description} x 100g</Typography>
+            <TableContainer component={Paper}>
+              <Table size="small" aria-label="a dense table">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Nutriente</TableCell>
+                    <TableCell align="right">Cantidad</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {usdaInfo.foodNutrients.map((row, i) => (
+                    <TableRow
+                      key={i}
+                      sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+                    >
+                      <TableCell component="th" scope="row">
+                        {row.nutrient.name}
+                      </TableCell>
+                      <TableCell align="right">{row.amount}{row.nutrient.unitName}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </div>}
         </div>
+      </Drawer>
+      <div style={{padding:7,background:'#fff',borderRadius:8,position:'fixed',top:15,right:15}}>
+        <Autocomplete
+          disablePortal
+          id="combo-box-demo"
+          options={recipes.map(x => ({ label: x.title }))}
+          sx={{ width: 300 }}
+          onInputChange={(event, newInputValue) => {
+            setSearch(newInputValue);
+          }}
+          renderInput={(params) => <TextField {...params} label="Receta" />}
+        />
       </div>
+      <svg ref={svgRef} width="100%" height={height} viewBox={`0 0 ${width} ${height}`} style={{maxWidth: '100%', height: 'auto'}} />
+      <style>{`
+        svg text {
+          font-family: "Roboto", sans-serif;
+          text-transform: capitalize;
+          text-shadow: 0 0 7px white;
+        }
+      `}</style>
     </div>
   );
 }
