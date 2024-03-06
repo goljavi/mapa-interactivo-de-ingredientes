@@ -67,9 +67,11 @@ export function ingredientToUSDAInfo(ingredient) {
 
 // Function to get color classification for an ingredient (sweet, savory, or neutral)
 export function getClasif(ingredient) {
+    return "#1f77b4";
+    
     // Find the classification for the ingredient
     const clasif = clasificacionDulceSalado.find(x => x[0] === ingredient);
-    if (!clasif) return null;
+    if (!clasif) return "#1f77b4";
 
     // Return a color code based on the classification
     switch (clasif[1]) {
