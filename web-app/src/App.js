@@ -28,6 +28,29 @@ const height = 600;
 // Flag to track if the chart has been created already
 let chartAlreadyMade = false;
 
+// Initialize an empty map to store ingredient counts
+const ingredientCounts = new Map();
+
+// Iterate over ingredientPairs array
+ingredientPairs.forEach(pair => {
+    // Update count for ing1
+    ingredientCounts.set(pair.ing1, (ingredientCounts.get(pair.ing1) || 0) + 1);
+    
+    // Update count for ing2
+    ingredientCounts.set(pair.ing2, (ingredientCounts.get(pair.ing2) || 0) + 1);
+});
+
+function transformNumber(x) {
+  const x_min = 1;
+  const x_max = 166;
+  const y_min = 15;
+  const y_max = 70;
+
+  // Map x to the desired range
+  return ((x - x_min) / (x_max - x_min)) * (y_max - y_min) + y_min;
+}
+
+
 // Main functional component - App
 function App() {
   // Define React refs and state variables using hooks
@@ -98,7 +121,7 @@ function App() {
 
     // Add circles to represent nodes
     node.append("circle")
-      .attr("r", 30)
+      .attr("r", d => transformNumber(ingredientCounts.get(d.name)))
       .style('opacity', 0.5)
       .attr("fill", d => getClasif(d.name))
       .attr("stroke", "#fff")
