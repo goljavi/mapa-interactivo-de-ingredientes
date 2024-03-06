@@ -40,15 +40,6 @@ ingredientPairs.forEach(pair => {
     ingredientCounts.set(pair.ing2, (ingredientCounts.get(pair.ing2) || 0) + 1);
 });
 
-const countsArray = Array.from(ingredientCounts.values());
-
-// Find the minimum and maximum count
-const minCount = Math.min(...countsArray);
-const maxCount = Math.max(...countsArray);
-
-console.log(`Minimum Count: ${minCount}`);
-console.log(`Maximum Count: ${maxCount}`);
-
 function transformNumber(x) {
   const x_min = 14;
   const x_max = 115;
