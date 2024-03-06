@@ -1,3 +1,4 @@
+// Import necessary modules from React, d3, Material-UI, and custom functions
 import React from 'react';
 import * as d3 from 'd3';
 import { recommendIngredient, findRecipesWithIngredients, ingredientToUSDAInfo, getClasif } from './functions';
@@ -20,14 +21,16 @@ import CardContent from '@mui/material/CardContent';
 import TextField from '@mui/material/TextField';
 import Autocomplete from '@mui/material/Autocomplete';
 
+// Define width and height for SVG
 const width = 928; 
 const height = 600;
 
-const color = d3.scaleOrdinal(d3.schemeCategory10);
-
+// Flag to track if the chart has been created already
 let chartAlreadyMade = false;
 
+// Main functional component - App
 function App() {
+  // Define React refs and state variables using hooks
   const svgRef = React.useRef();
   const [graphNodes, setGraphNodes] = React.useState([]);
   const [graphLinks, setGraphLinks] = React.useState([]);
@@ -37,103 +40,112 @@ function App() {
   const [usdaInfo, setUsdaInfo] = React.useState();
   const [search, setSearch] = React.useState('');
 
-
+  // Function to create the d3 chart
   function makeChart() {
+    // Mark that chart has been created
     chartAlreadyMade = true;
-    
+
+    // Initialize arrays to store nodes and links
     const nodes = [];
     const links = [];
+
+    // Iterate through ingredient pairs data
     ingredientPairs.forEach(x => {
+      // Create slugs for ingredients
       const ing1slug = x.ing1.replaceAll(' ', '-');
       const ing2slug = x.ing2.replaceAll(' ', '-');
 
-      if(!nodes.find(y => y.name === x.ing1)) {
-        nodes.push({id: ing1slug, name: x.ing1})
+      // Check if nodes exist, if not add them
+      if (!nodes.find(y => y.name === x.ing1)) {
+        nodes.push({ id: ing1slug, name: x.ing1 });
+      }
+      if (!nodes.find(y => y.name === x.ing2)) {
+        nodes.push({ id: ing2slug, name: x.ing2 });
       }
 
-      if(!nodes.find(y => y.name === x.ing2)) {
-        nodes.push({id: ing2slug, name: x.ing2})
-      }
-
-      links.push({source: ing1slug, target: ing2slug, value: x.count})
-      links.push({source: ing2slug, target: ing1slug, value: x.count})
+      // Create links between ingredients
+      links.push({ source: ing1slug, target: ing2slug, value: x.count });
+      links.push({ source: ing2slug, target: ing1slug, value: x.count });
     });
+
+    // Update state with nodes and links
     setGraphNodes(nodes);
     setGraphLinks(links);
 
-    // Create the SVG container.
+    // Create the SVG container
     const svg = d3.select(svgRef.current);
 
     // This group contains all graph elements
-    const contentGroup = svg.append("g").attr("class", "content-group"); 
+    const contentGroup = svg.append("g").attr("class", "content-group");
 
-    // Add a line for each link, and a circle for each node.
+    // Add lines for links and circles for nodes
     const link = contentGroup.append("g")
-        .attr("stroke", "#000")
-        .attr("stroke-opacity", 0.3)
+      .attr("stroke", "#000")
+      .attr("stroke-opacity", 0.3)
       .selectAll()
       .data(links)
       .join("line")
-        .attr("stroke-width", d => 0.1)
-        .attr("source", d => d.source)
-        .attr("target", d => d.target);
+      .attr("stroke-width", d => 0.1)
+      .attr("source", d => d.source)
+      .attr("target", d => d.target);
 
+    // Append a group for each node and add circles and text
     const node = contentGroup.append("g")
-        .attr("class", "nodes")
+      .attr("class", "nodes")
       .selectAll("g")
       .data(nodes)
-      .enter().append("g").attr("id", d => d.id); // Append a group for each node
+      .enter().append("g").attr("id", d => d.id);
 
+    // Add circles to represent nodes
     node.append("circle")
-      .attr("r", 30) // Radius of the circle
+      .attr("r", 30)
       .style('opacity', 0.5)
       .attr("fill", d => getClasif(d.name))
       .attr("stroke", "#fff")
       .attr("stroke-width", 1)
       .on("click", (event, d) => handleNodeClick(d));
-    
+
+    // Add text labels to nodes
     node.append("text")
       .text(d => d.name)
       .attr("x", 0)
       .attr("y", 0)
-      .attr("text-anchor", "middle") // Center the text
-      .attr("alignment-baseline", "middle") // Center vertically
+      .attr("text-anchor", "middle")
+      .attr("alignment-baseline", "middle")
       .style("font-size", "10px")
-      .style("fill", "#333") // Text color
-      .on("click", (event, d) => handleNodeClick(d)); 
+      .style("fill", "#333")
+      .on("click", (event, d) => handleNodeClick(d));
 
-    // Create a simulation with several forces.
+    // Create a simulation to apply forces to the nodes
     const simulation = d3.forceSimulation(nodes)
-    .force("link", d3.forceLink(links)
-    .id(d => d.id)
-    .distance(d => 20 - d.value * 0.5) // Example calculation, adjust as needed
-    // The base distance is 100, and we subtract a value based on count.
-    // Ensure the result is positive and makes sense for your dataset.
-)
-      .force("charge", d3.forceManyBody().strength(-600)) // Increase repulsion
+      .force("link", d3.forceLink(links)
+        .id(d => d.id)
+        .distance(d => 20 - d.value * 0.5))
+      .force("charge", d3.forceManyBody().strength(-600))
       .force("center", d3.forceCenter(width / 2, height / 2))
       .on("tick", ticked);
 
-    // Set the position attributes of links and nodes each time the simulation ticks.
+    // Function to update positions of nodes and links
     function ticked() {
       link
-          .attr("x1", d => d.source.x)
-          .attr("y1", d => d.source.y)
-          .attr("x2", d => d.target.x)
-          .attr("y2", d => d.target.y);
+        .attr("x1", d => d.source.x)
+        .attr("y1", d => d.source.y)
+        .attr("x2", d => d.target.x)
+        .attr("y2", d => d.target.y);
 
       node
-          .attr("transform", d => `translate(${d.x},${d.y})`);
+        .attr("transform", d => `translate(${d.x},${d.y})`);
 
-      if (simulation.alpha() < 0.1) { // Check if the simulation has cooled down
-        simulation.stop(); // Stops the simulation
+      if (simulation.alpha() < 0.1) {
+        simulation.stop();
       }
     }
 
+    // Add zoom behavior to the SVG
     const zoom = d3.zoom()
-      .scaleExtent([0, 10]) // This defines the range of zoom. Feel free to adjust.
+      .scaleExtent([0, 10])
       .on("zoom", zoomed);
-  
+
     function zoomed(event) {
       contentGroup.attr("transform", event.transform);
     }
@@ -143,117 +155,109 @@ function App() {
     return svg.node();
   }
 
+  // Effect hook to create the chart
   React.useEffect(() => {
-    if(!svgRef || !svgRef.current || chartAlreadyMade) return;
-    makeChart()
+    if (!svgRef || !svgRef.current || chartAlreadyMade) return;
+    makeChart();
   }, [svgRef]);
 
+  // Effect hook to update recommended ingredients and recipes when nodes are clicked
   React.useEffect(() => {
-    if(!clickedNodes.length){ 
+    if (!clickedNodes.length) {
       setRecommendedIngredients([]);
       setRecommendedRecipes([]);
       return;
     }
-
     const clickedNodeNames = clickedNodes.map(x => x.name);
     setRecommendedIngredients(recommendIngredient(clickedNodeNames));
     setRecommendedRecipes(findRecipesWithIngredients(clickedNodeNames));
   }, [clickedNodes]);
 
+  // Function to handle click on a node
   function handleNodeClick(nodeData) {
     const usdaInfo = ingredientToUSDAInfo(nodeData.name);
     setUsdaInfo(usdaInfo);
-    console.log(usdaInfo);
-
     setClickedNodes(prevNodes => {
       const nodeIndex = prevNodes.findIndex(n => n.id === nodeData.id);
       let newClickedNodes;
       if (nodeIndex > -1) {
-        // Node is already in the list, so remove it
         newClickedNodes = prevNodes.filter((_, index) => index !== nodeIndex);
       } else {
-        // Node is not in the list, so add it
         newClickedNodes = [...prevNodes, nodeData];
       }
-  
       return newClickedNodes;
     });
   }
 
+  // Effect hook to update visual state based on clicked nodes
   React.useEffect(() => {
     function updateVisualState(selectedNodes) {
-      // Reset styles for all nodes and links to default
       d3.selectAll('.nodes g circle')
         .style('opacity', 0.5)
-        .style('fill', d => getClasif(d.name)); // Reset to the original color
-  
+        .style('fill', d => getClasif(d.name));
+
       d3.selectAll('.content-group line')
         .style('stroke-opacity', 0.3);
-  
-      if (selectedNodes.length === 0) return; // Exit if no nodes are selected
-  
-      // Identify links that connect to each selected node
+
+      if (selectedNodes.length === 0) return;
+
       const linksForEachSelectedNode = selectedNodes.map(selectedNode =>
         graphLinks.filter(link =>
           link.source.id === selectedNode.id
         )
       ).flat();
 
-
       const commonLinks = []
       linksForEachSelectedNode.forEach(x => {
-
         let repeated = 1;
         linksForEachSelectedNode.forEach(y => {
-          if(x.source.id === y.source.id) return;
-          if(x.target.id === y.target.id) repeated = repeated + 1;
+          if (x.source.id === y.source.id) return;
+          if (x.target.id === y.target.id) repeated = repeated + 1;
         });
-
-        if(repeated >= selectedNodes.length) {
+        if (repeated >= selectedNodes.length) {
           commonLinks.push(x);
         }
-      })
-  
-      // Highlight common links
+      });
+
       commonLinks.forEach(link => {
         d3.selectAll(`line[source="${link.source.id}"], line[target="${link.source.id}"]`)
           .style('stroke-opacity', 1);
         d3.selectAll(`line[source="${link.target.id}"], line[target="${link.target.id}"]`)
           .style('stroke-opacity', 1);
       });
-  
-      // Identify and highlight nodes at the ends of these common links in blue
+
       const connectedNodeIds = new Set(commonLinks.flatMap(link => [link.source.id, link.target.id]));
       connectedNodeIds.forEach(nodeId => {
         d3.select(`.nodes g[id="${nodeId}"] circle`)
-          .style('opacity', 1); // Connected nodes in blue
+          .style('opacity', 1);
       });
-  
-      // Overlay the clicked (selected) nodes in orange
+
       selectedNodes.forEach(node => {
         d3.select(`.nodes g[id="${node.id}"] circle`)
           .style('opacity', 1)
-          .style('fill', 'orange'); // Clicked nodes in orange
+          .style('fill', 'orange');
       });
-    }   
-  
-    if(graphLinks.length) updateVisualState(clickedNodes);
-  }, [clickedNodes, graphLinks]); // Depend on clickedNodes and graphLinks
+    }
 
+    if (graphLinks.length) updateVisualState(clickedNodes);
+  }, [clickedNodes, graphLinks]);
+
+  // Effect hook to search for recipes
   React.useEffect(() => {
-    console.log(search);
     const recipeSearch = recipes.find(x => x.title === search);
-    if(!recipeSearch) return;
+    if (!recipeSearch) return;
 
     const newSelectedNodes = graphNodes.filter(x => !!recipeSearch.ingredients.find(y => y === x.name));
     setClickedNodes(newSelectedNodes);
   }, [search])
 
+  // Function to handle click on recommended ingredient button
   function handleRecommendedIngredientButton(ingredient) {
     const nodeInfo = graphNodes.find(x => x.name === ingredient);
-    if(nodeInfo) handleNodeClick(nodeInfo);
+    if (nodeInfo) handleNodeClick(nodeInfo);
   }
 
+  // Render UI components
   return (
     <div>
       <Drawer
@@ -268,7 +272,7 @@ function App() {
         variant="permanent"
         anchor="left"
       >
-        <div style={{padding:15}}>
+        <div style={{ padding: 15 }}>
           <div>
             <Typography variant="h6">Seleccionaste:</Typography>
             <TableContainer component={Paper}>
@@ -285,22 +289,22 @@ function App() {
               </Table>
             </TableContainer>
           </div>
-          <Divider style={{marginBottom: 15}}/>
+          <Divider style={{ marginBottom: 15 }} />
           <div>
             <Typography variant="h6">Podés agregar:</Typography>
             <div>
               {recommendedIngredients.map((ingredient, i) => (
-                <Button style={{margin:'10px 0',display:'block'}} variant="contained" onClick={() => handleRecommendedIngredientButton(ingredient)}>
+                <Button style={{ margin: '10px 0', display: 'block' }} variant="contained" onClick={() => handleRecommendedIngredientButton(ingredient)}>
                   {ingredient}
                 </Button>
               ))}
             </div>
           </div>
-          <Divider style={{marginBottom: 15}}/>
+          <Divider style={{ marginBottom: 15 }} />
           <div>
             <Typography variant="h6">Recetas:</Typography>
             {recommendedRecipes.map((recipe, i) => (
-              <Card style={{margin:'15px 0'}} key={i}>
+              <Card style={{ margin: '15px 0' }} key={i}>
                 <CardContent>
                   <Typography variant="h6" component="div">
                     {recipe.title}
@@ -312,7 +316,7 @@ function App() {
               </Card>
             ))}
           </div>
-          <Divider style={{marginBottom: 15}}/>
+          <Divider style={{ marginBottom: 15 }} />
           {usdaInfo && <div>
             <Typography variant="h6">Info Nutricional: </Typography>
             <Typography variant="body1">{usdaInfo?.description} x 100g</Typography>
@@ -342,7 +346,7 @@ function App() {
           </div>}
         </div>
       </Drawer>
-      <div style={{padding:7,background:'#fff',borderRadius:8,position:'fixed',top:15,right:15}}>
+      <div style={{ padding: 7, background: '#fff', borderRadius: 8, position: 'fixed', top: 15, right: 15 }}>
         <Autocomplete
           disablePortal
           id="combo-box-demo"
@@ -354,7 +358,7 @@ function App() {
           renderInput={(params) => <TextField {...params} label="Receta" />}
         />
       </div>
-      <svg ref={svgRef} width="100%" height={height} viewBox={`0 0 ${width} ${height}`} style={{maxWidth: '100%', height: 'auto'}} />
+      <svg ref={svgRef} width="100%" height={height} viewBox={`0 0 ${width} ${height}`} style={{ maxWidth: '100%', height: 'auto' }} />
       <style>{`
         svg text {
           font-family: "Roboto", sans-serif;
@@ -366,4 +370,6 @@ function App() {
   );
 }
 
+// Export the component
 export default App;
+
