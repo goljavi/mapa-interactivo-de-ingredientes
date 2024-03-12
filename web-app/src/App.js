@@ -60,8 +60,9 @@ function App() {
   const [clickedNodes, setClickedNodes] = React.useState([]);
   const [recommendedIngredients, setRecommendedIngredients] = React.useState([]);
   const [recommendedRecipes, setRecommendedRecipes] = React.useState([]);
-  const [usdaInfo, setUsdaInfo] = React.useState();
+  const [usdaInfo, setUsdaInfo] = React.useState([]);
   const [search, setSearch] = React.useState('');
+  const [nutrientsInfo, setNutrientsInfo] = React.useState({});
 
   // Function to create the d3 chart
   function makeChart() {
@@ -194,12 +195,36 @@ function App() {
     const clickedNodeNames = clickedNodes.map(x => x.name);
     setRecommendedIngredients(recommendIngredient(clickedNodeNames));
     setRecommendedRecipes(findRecipesWithIngredients(clickedNodeNames));
+
+    const usdaInfoRaw = clickedNodes.map(x => ingredientToUSDAInfo(x.name))
+
+    const nutrientSums = usdaInfoRaw.reduce((acc, currentItem) => {
+      currentItem.foodNutrients.forEach(nutrient => {
+        const { name, unitName } = nutrient.nutrient;
+        const amount = nutrient.amount;
+    
+        // Check if this nutrient name already exists in the accumulator
+        if (acc[name]) {
+          // If yes, add to the existing amount
+          acc[name].amount += amount;
+        } else {
+          // If no, create a new entry for this nutrient
+          acc[name] = {
+            amount,
+            unitName,
+          };
+        }
+      });
+    
+      return acc;
+    }, {});
+
+    setUsdaInfo(usdaInfoRaw);
+    setNutrientsInfo(nutrientSums);
   }, [clickedNodes]);
 
   // Function to handle click on a node
   function handleNodeClick(nodeData) {
-    const usdaInfo = ingredientToUSDAInfo(nodeData.name);
-    setUsdaInfo(usdaInfo);
     setClickedNodes(prevNodes => {
       const nodeIndex = prevNodes.findIndex(n => n.id === nodeData.id);
       let newClickedNodes;
@@ -340,9 +365,22 @@ function App() {
             ))}
           </div>
           <Divider style={{ marginBottom: 15 }} />
-          {usdaInfo && <div>
+          {usdaInfo && usdaInfo.length > 0 && <div>
+            
             <Typography variant="h6">Info Nutricional: </Typography>
-            <Typography variant="body1">{usdaInfo?.description} x 100g</Typography>
+            <TableContainer component={Paper} style={{marginBottom: 50}}>
+              <Table size="small" aria-label="a dense table">
+                <TableBody>
+                  {usdaInfo.map((x, i) => (
+                    <TableRow key={i}>
+                      <TableCell component="th" scope="row">
+                      {x.description} x 100g
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
             <TableContainer component={Paper}>
               <Table size="small" aria-label="a dense table">
                 <TableHead>
@@ -352,15 +390,15 @@ function App() {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {usdaInfo.foodNutrients.map((row, i) => (
+                  {Object.keys(nutrientsInfo).map((row, i) => (
                     <TableRow
                       key={i}
                       sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
                     >
                       <TableCell component="th" scope="row">
-                        {row.nutrient.name}
+                        {row}
                       </TableCell>
-                      <TableCell align="right">{row.amount}{row.nutrient.unitName}</TableCell>
+                      <TableCell align="right">{Math.round((nutrientsInfo[row].amount + Number.EPSILON) * 100) / 100} {nutrientsInfo[row].unitName}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
