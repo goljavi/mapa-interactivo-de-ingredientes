@@ -1,7 +1,7 @@
 // Import necessary modules from React, d3, Material-UI, and custom functions
 import React from 'react';
 import * as d3 from 'd3';
-import { recommendIngredient, findRecipesWithIngredients, ingredientToUSDAInfo, getClasif } from './functions';
+import { recommendIngredient, findRecipesWithIngredients, ingredientToUSDAInfo, getClasif, getAllNutrientNames } from './functions';
 import ingredientPairs from './ingredient-pairs-tfidf.json';
 import recipes from './formatted-recipes.json';
 import Drawer from '@mui/material/Drawer';
@@ -20,6 +20,9 @@ import CardActions from '@mui/material/CardActions';
 import CardContent from '@mui/material/CardContent';
 import TextField from '@mui/material/TextField';
 import Autocomplete from '@mui/material/Autocomplete';
+import Modal from '@mui/material/Modal';
+import Box from '@mui/material/Box';
+import Stack from '@mui/material/Stack';
 
 // Define width and height for SVG
 const width = 928; 
@@ -63,9 +66,33 @@ function App() {
   const [usdaInfo, setUsdaInfo] = React.useState([]);
   const [search, setSearch] = React.useState('');
   const [nutrientsInfo, setNutrientsInfo] = React.useState({});
+  const [open, setOpen] = React.useState(false);
+  const [nutrientObjectives, setNutrientObjectives] = React.useState([]);
+  const [allNutrients, setAllNutrients] = React.useState([]);
+
+  const handleAddNutrient = () => {
+    setNutrientObjectives([...nutrientObjectives, { nutrient: '', objective: '' }]);
+  };
+
+  const handleNutrientChange = (index, newValue) => {
+    const updatedNutrients = [...nutrientObjectives];
+    updatedNutrients[index].nutrient = newValue;
+    setNutrientObjectives(updatedNutrients);
+  };
+
+  const handleObjectiveChange = (index, event) => {
+    const updatedObjectives = [...nutrientObjectives];
+    updatedObjectives[index].objective = event.target.value;
+    setNutrientObjectives(updatedObjectives);
+  };
+
+  const handleOpen = () => setOpen(true);
+  const handleClose = () => setOpen(false);
+
 
   // Function to create the d3 chart
   function makeChart() {
+    setAllNutrients(getAllNutrientNames());
     // Mark that chart has been created
     chartAlreadyMade = true;
 
@@ -199,7 +226,7 @@ function App() {
     const usdaInfoRaw = clickedNodes.map(x => ingredientToUSDAInfo(x.name))
 
     const nutrientSums = usdaInfoRaw.reduce((acc, currentItem) => {
-      currentItem.foodNutrients.forEach(nutrient => {
+      currentItem?.foodNutrients?.forEach(nutrient => {
         const { name, unitName } = nutrient.nutrient;
         const amount = nutrient.amount;
     
@@ -371,16 +398,17 @@ function App() {
             <TableContainer component={Paper} style={{marginBottom: 50}}>
               <Table size="small" aria-label="a dense table">
                 <TableBody>
-                  {usdaInfo.map((x, i) => (
+                  {usdaInfo.filter(x => x).map((x, i) => (
                     <TableRow key={i}>
                       <TableCell component="th" scope="row">
-                      {x.description} x 100g
+                        {x.description} x 100g
                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
             </TableContainer>
+            <Button onClick={handleOpen}>Setear objetivos</Button>
             <TableContainer component={Paper}>
               <Table size="small" aria-label="a dense table">
                 <TableHead>
@@ -394,6 +422,7 @@ function App() {
                     <TableRow
                       key={i}
                       sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+                      style={{background: (nutrientObjectives.find(x => x.nutrient.label === row)?.objective <= (Math.round((nutrientsInfo[row].amount + Number.EPSILON) * 100) / 100)) ? 'yellow' : 'white'}}
                     >
                       <TableCell component="th" scope="row">
                         {row}
@@ -426,7 +455,50 @@ function App() {
           text-transform: capitalize;
           text-shadow: 0 0 7px white;
         }
-      `}</style>
+      `}</style> 
+      <Modal
+        open={open}
+        onClose={handleClose}
+        aria-labelledby="modal-modal-title"
+        aria-describedby="modal-modal-description"
+      >
+        <Box sx={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: 400,
+          bgcolor: 'background.paper',
+          border: '2px solid #000',
+          boxShadow: 24,
+          p: 4,
+        }}>
+          <Typography id="modal-modal-title" variant="h6" component="h2">
+            Objetivos
+          </Typography>
+          <Typography id="modal-modal-description" sx={{ mt: 2 }}>
+          <Button variant="contained" onClick={handleAddNutrient} style={{marginBottom:15}}>Add Nutrient</Button>
+          {nutrientObjectives.map((item, index) => (
+            <Stack direction="row" spacing={2} key={index} alignItems="center" style={{marginBottom:15}}>
+              <Autocomplete
+                disablePortal
+                options={allNutrients.map((x, i) => ({label: x.name, id: x.name, unit: x.unit}))}
+                sx={{ width: 150 }}
+                renderInput={(params) => <TextField {...params} label="Nutrient" />}
+                onChange={(event, newValue) => handleNutrientChange(index, newValue)}
+                value={item.nutrient}
+              />
+              <TextField
+                label={item.nutrient.unit}
+                type="number"
+                value={item.objective}
+                onChange={(event) => handleObjectiveChange(index, event)}
+              />
+            </Stack>
+          ))}
+          </Typography>
+        </Box>
+      </Modal>
     </div>
   );
 }

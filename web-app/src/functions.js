@@ -83,3 +83,13 @@ export function getClasif(ingredient) {
             return "#1f77b4"; // Blue by default
     }
 }
+
+export function getAllNutrientNames() {
+    const allNutrients = USDA.FoundationFoods.map(x => x.foodNutrients).flat().map(x => ({name: x.nutrient.name, unit: x.nutrient.unitName}));
+    const toReturn = [];
+    allNutrients.forEach(x => {
+        if(toReturn.find(y => y.name === x.name)) return;
+        toReturn.push(x);
+    });
+    return toReturn;
+}
