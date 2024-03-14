@@ -199,7 +199,7 @@ function App() {
     const usdaInfoRaw = clickedNodes.map(x => ingredientToUSDAInfo(x.name))
 
     const nutrientSums = usdaInfoRaw.reduce((acc, currentItem) => {
-      currentItem.foodNutrients.forEach(nutrient => {
+      currentItem?.foodNutrients?.forEach(nutrient => {
         const { name, unitName } = nutrient.nutrient;
         const amount = nutrient.amount;
     
@@ -371,7 +371,7 @@ function App() {
             <TableContainer component={Paper} style={{marginBottom: 50}}>
               <Table size="small" aria-label="a dense table">
                 <TableBody>
-                  {usdaInfo.map((x, i) => (
+                  {usdaInfo.filter(x => x).map((x, i) => (
                     <TableRow key={i}>
                       <TableCell component="th" scope="row">
                       {x.description} x 100g
