@@ -1,6 +1,6 @@
 # Interactive Kitchen Ingredients Map
 
-[https://mapa-de-ingredientes-empanadas.web.app/](See the website here)
+[See the WebApp here](https://mapa-de-ingredientes-empanadas.web.app/)
 
 ## Description
 
